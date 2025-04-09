@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import pandas as pd
-import argparse
+from werkzeug.datastructures import FileStorage
 
 
 def map_x_to_freq(x: int, width: int) -> int:
@@ -90,20 +90,32 @@ def process_audiogram(image_path: str, output_csv_right: str, output_csv_left: s
     cv2.destroyAllWindows()
 
 
-def main() -> None:
+def process_audiogram_image(file: FileStorage):
     """
-    Main function to handle argument parsing and execute the audiogram processing.
+    Processes an audiogram image, detects hearing threshold points, and saves extracted data to CSV files.
 
-    return: None
+    file: FileStorage - POST file from request
+    return: DataFrame, DataFrame - data from both ears
     """
-    parser = argparse.ArgumentParser(description="Audiogram Analyzer")
-    parser.add_argument("image_path", type=str, help="Path to the audiogram image")
-    parser.add_argument("output_csv_right", type=str, help="Path to the output CSV file for the right ear")
-    parser.add_argument("output_csv_left", type=str, help="Path to the output CSV file for the left ear")
+    file_bytes = file.read()
 
-    args = parser.parse_args()
-    process_audiogram(args.image_path, args.output_csv_right, args.output_csv_left)
+    # Convert to NumPy array and decode with OpenCV
+    npimg = np.frombuffer(file_bytes, np.uint8)
+    image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)  # Convert image to HSV color space
 
-if __name__ == "__main__":
-    main()
+    lower_red1, upper_red1 = np.array([0, 50, 50]), np.array([10, 255, 255])
+    lower_red2, upper_red2 = np.array([170, 50, 50]), np.array([180, 255, 255])
+    lower_blue, upper_blue = np.array([70, 30, 50]), np.array([140, 255, 255])
+
+    mask_red = cv2.inRange(hsv, lower_red1, upper_red1) + cv2.inRange(hsv, lower_red2, upper_red2)
+    mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
+
+    right_ear_data = find_points(mask_red, image, "Right Ear", (0, 255, 0))
+    left_ear_data = find_points(mask_blue, image, "Left Ear", (255, 0, 0))
+
+    right_ear_data = pd.DataFrame(right_ear_data, columns=['Frequency_Hz', 'Hearing_Level_dB', 'Ear'])
+    left_ear_data = pd.DataFrame(left_ear_data, columns=['Frequency_Hz', 'Hearing_Level_dB', 'Ear'])
+
+    return right_ear_data, left_ear_data
