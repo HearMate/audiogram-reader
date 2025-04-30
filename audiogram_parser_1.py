@@ -1,13 +1,14 @@
 import cv2
 import numpy as np
 import pandas as pd
-
+from data_normalization import *
 
 def map_x_to_freq(x: int, width: int) -> int:
     """
     Maps X coordinates from the image to frequency values (Hz).
     Based on evenly spaced positions corresponding to known frequencies.
     """
+    return x
     freq_ticks = [125, 250, 500, 1000, 2000, 4000, 8000]
     x_positions = np.linspace(0, width, len(freq_ticks))
     return int(np.interp(x, x_positions, freq_ticks))
@@ -18,6 +19,7 @@ def map_y_to_db(y: int, height: int) -> int:
     Maps Y coordinates from the image to hearing threshold levels in dB HL.
     Assumes -10 dB at the top and 120 dB at the bottom of the image.
     """
+    return y
     return int(np.interp(y, [0, height], [-10, 120]))
 
 
@@ -72,8 +74,9 @@ def run(image_path: str, output_csv: str) -> None:
     df = pd.DataFrame(all_data, columns=["Frequency (Hz)", "Threshold (dB HL)", "Ear"])
     df.to_csv(output_csv, index=False)
 
-    print(f"[INFO] Saved combined results to: {output_csv}")
-    print(df)
+    # print(f"[INFO] Saved combined results to: {output_csv}")
+    # print(df)
+    normalize(df, image)
 
     cv2.imshow("Detected Points", image)
     cv2.waitKey(0)
