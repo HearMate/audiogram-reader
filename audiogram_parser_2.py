@@ -6,12 +6,14 @@ FREQUENCIES = ['125', '250', '500', '1k', '2k', '4k', '8k']
 DB_MIN, DB_MAX = -10, 120
 Y_VALID_RANGE = (30, 130)
 
+
 def map_y_to_db(y: int, height: int) -> int:
     """
     Maps vertical Y-pixel coordinates to hearing threshold values in dB HL.
     Top of the image = -10 dB, bottom = 120 dB.
     """
     return int(np.interp(y, [0, height], [DB_MIN, DB_MAX]))
+
 
 def enhance_saturation(image: np.ndarray, factor: float = 2.5) -> np.ndarray:
     """
@@ -23,13 +25,14 @@ def enhance_saturation(image: np.ndarray, factor: float = 2.5) -> np.ndarray:
     enhanced = cv2.merge([h, s, v]).astype("uint8")
     return cv2.cvtColor(enhanced, cv2.COLOR_HSV2BGR)
 
+
 def detect_red_circles(image: np.ndarray) -> list:
     """
     Detects red circular markers representing right ear thresholds.
     """
     hsv = cv2.cvtColor(enhance_saturation(image), cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, (0, 70, 50), (10, 255, 255)) | \
-           cv2.inRange(hsv, (160, 70, 50), (180, 255, 255))
+        cv2.inRange(hsv, (160, 70, 50), (180, 255, 255))
     blurred = cv2.GaussianBlur(mask, (9, 9), 2)
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=25,
                                param1=100, param2=10, minRadius=4, maxRadius=15)
@@ -39,6 +42,7 @@ def detect_red_circles(image: np.ndarray) -> list:
             if Y_VALID_RANGE[0] < y < Y_VALID_RANGE[1]:
                 points.append((x, y))
     return sorted(points, key=lambda p: p[0])[:7]
+
 
 def detect_blue_crosses(image: np.ndarray) -> list:
     """
@@ -55,11 +59,13 @@ def detect_blue_crosses(image: np.ndarray) -> list:
                 points.append((x, y))
     return sorted(points, key=lambda p: p[0])[:7]
 
+
 class PointEditor:
     """
     Interactive point editor using OpenCV windows.
     Allows user to manually correct points with mouse clicks.
     """
+
     def __init__(self, window_name: str, image: np.ndarray, color: str, points: list):
         self.window_name = window_name
         self.base_image = image.copy()
@@ -102,6 +108,7 @@ class PointEditor:
         while len(self.points) < 7:
             self.points.append((None, None))
         return self.points
+
 
 def run(image_path: str, output_csv: str) -> None:
     """
