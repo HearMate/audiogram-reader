@@ -1,33 +1,52 @@
 import cv2
 import pandas as pd
+import numpy as np
 
 
 def normalize(df, image):
-    hz_mapping = {0: 125, 1: 125, 2: 250, 3: 250, 4: 500, 5: 750, 6: 1000, 7: 1500, 8: 2000, 9: 3000, 10: 4000,
-                  11: 6000, 12: 8000}
-    db_mapping = [-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120]
-
+    """
+    Given image and pixel coordinates of data points maps them to 125-8kHz and -10-120dBHL
+    """
     ears = df["Ear"].unique()
     for ear in ears:
         ear_data = df[df["Ear"] == ear]
 
-        min = ear_data["Frequency (Hz)"].min()
-        max = ear_data["Frequency (Hz)"].max()
+        normalized_freq = normalize_hz(ear_data)
+        normalized_thresh = normalize_db(ear_data, image)
 
-        normalized_freq = round((ear_data["Frequency (Hz)"] - min) * (12 / (max - min)))
-        normalized_freq = [hz_mapping[x] for x in normalized_freq]
+        result = pd.DataFrame({"Frequency (Hz)": normalized_freq, "Threshold (dB HL)": normalized_thresh, "Ear": ear})
+        result = result.sort_values(by="Frequency (Hz)")
+        df.loc[df["Ear"] == ear, ["Frequency (Hz)", "Threshold (dB HL)", "Ear"]] = result.values
 
-        _, _, top, bottom = find_bounding_box(image, ear_data)
-        normalized_thresh = round((ear_data["Threshold (dB HL)"] - top) * ((len(db_mapping) + 1) / (bottom - top)))
-        normalized_thresh = [db_mapping[int(x)] for x in normalized_thresh]
+    return df
 
-        result = pd.DataFrame({"freq": normalized_freq, "thresh": normalized_thresh})
-        result = result.sort_values(by="freq")
-        print(ear)
-        print(result)
+
+def normalize_hz(ear_data):
+    hz_mapping = {0: 125, 1: 125, 2: 250, 3: 250, 4: 500, 5: 750, 6: 1000, 7: 1500, 8: 2000, 9: 3000, 10: 4000,
+                  11: 6000, 12: 8000}
+
+    min_freq = ear_data["Frequency (Hz)"].min()
+    max_freq = ear_data["Frequency (Hz)"].max()
+
+    normalized_freq = ((ear_data["Frequency (Hz)"] - min_freq) * (12 / (max_freq - min_freq))).round()
+    normalized_freq = [hz_mapping[int(x)] for x in normalized_freq]
+    return normalized_freq
+
+
+def normalize_db(ear_data, image):
+    db_mapping = [x for x in range(-10, 125, 5)]
+
+    _, _, top, bottom = find_bounding_box(image, ear_data)
+
+    normalized_thresh = np.round((ear_data["Threshold (dB HL)"] - top) * ((len(db_mapping) - 1) / (bottom - top)))
+    normalized_thresh = [db_mapping[int(x)] for x in normalized_thresh]
+    return normalized_thresh
 
 
 def find_bounding_box(img, ear_data):
+    """
+    Finds the top and bottom border of the plotting space in one graph
+    """
     img = img.copy()
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -42,8 +61,9 @@ def find_bounding_box(img, ear_data):
     min_y = ear_data["Threshold (dB HL)"].min()
     max_y = ear_data["Threshold (dB HL)"].max()
 
-    for cnt in contours:
-        x, y, w, h = cv2.boundingRect(cnt)
+    # find minimal space containing all datapoints
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
         area = w * h
         if area < min_viable_area and x < min_x and x + w > max_x and y < min_y and y + h > max_y:
             min_viable_area = area
@@ -52,22 +72,25 @@ def find_bounding_box(img, ear_data):
     max_viable_area = 0
     x, y, w, h = plot_rect
     margin = 5
-    left_min = x - margin
-    left_max = x + margin
-    right_min = x + w - margin
-    right_max = x + w + margin
+    left_border_min = x - margin
+    left_border_max = x + margin
+    right_border_min = x + w - margin
+    right_border_max = x + w + margin
 
-    for cnt in contours:
-        x, y, w, h = cv2.boundingRect(cnt)
+    # find maximal space with previously found width
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
         area = w * h
-        if area > max_viable_area and left_max > x > left_min and right_min < (x + w) < right_max:
+        if area > max_viable_area and left_border_max > x > left_border_min and right_border_min < (x + w) < right_border_max:
             max_viable_area = area
+            y += 5
+            h -= 5
             plot_rect = (x, y, w, h)
-            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            # cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-    cv2.imshow("Detected Plot Area", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow("Detected Plot Area", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     x, y, w, h = plot_rect
     return x, x+w, y, y+h
