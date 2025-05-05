@@ -25,10 +25,10 @@ def normalize_hz(ear_data):
     hz_mapping = {0: 125, 1: 125, 2: 250, 3: 250, 4: 500, 5: 750, 6: 1000, 7: 1500, 8: 2000, 9: 3000, 10: 4000,
                   11: 6000, 12: 8000}
 
-    min_hz = ear_data["Frequency (Hz)"].min()
-    max_hz = ear_data["Frequency (Hz)"].max()
+    min_freq = ear_data["Frequency (Hz)"].min()
+    max_freq = ear_data["Frequency (Hz)"].max()
 
-    normalized_freq = ((ear_data["Frequency (Hz)"] - min_hz) * (12 / (max_hz - min_hz))).round()
+    normalized_freq = ((ear_data["Frequency (Hz)"] - min_freq) * (12 / (max_freq - min_freq))).round()
     normalized_freq = [hz_mapping[int(x)] for x in normalized_freq]
     return normalized_freq
 
@@ -62,8 +62,8 @@ def find_bounding_box(img, ear_data):
     max_y = ear_data["Threshold (dB HL)"].max()
 
     # find minimal space containing all datapoints
-    for cnt in contours:
-        x, y, w, h = cv2.boundingRect(cnt)
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
         area = w * h
         if area < min_viable_area and x < min_x and x + w > max_x and y < min_y and y + h > max_y:
             min_viable_area = area
@@ -72,16 +72,17 @@ def find_bounding_box(img, ear_data):
     max_viable_area = 0
     x, y, w, h = plot_rect
     margin = 5
-    left_min = x - margin
-    left_max = x + margin
-    right_min = x + w - margin
-    right_max = x + w + margin
+
+    left_border_min = x - margin
+    left_border_max = x + margin
+    right_border_min = x + w - margin
+    right_border_max = x + w + margin
 
     # find maximal space with previously found width
-    for cnt in contours:
-        x, y, w, h = cv2.boundingRect(cnt)
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
         area = w * h
-        if area > max_viable_area and left_max > x > left_min and right_min < (x + w) < right_max:
+        if area > max_viable_area and left_border_max > x > left_border_min and right_border_min < (x + w) < right_border_max:
             max_viable_area = area
             y += 5
             h -= 5
