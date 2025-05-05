@@ -72,6 +72,7 @@ def find_bounding_box(img, ear_data):
     max_viable_area = 0
     x, y, w, h = plot_rect
     margin = 5
+
     left_border_min = x - margin
     left_border_max = x + margin
     right_border_min = x + w - margin
