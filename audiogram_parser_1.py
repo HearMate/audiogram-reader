@@ -1,14 +1,10 @@
 import cv2
 import pandas as pd
 import numpy as np
-import logging
 from data_normalization import *
+from logger import setup_logger
 
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] %(message)s'
-)
+logger = setup_logger(__name__)
 
 
 def drop_bone_data(df):
@@ -71,8 +67,8 @@ def run(image_path: str, output_csv: str) -> None:
     df = normalize(df, image)
     df = drop_bone_data(df)
 
-    logging.info("\n%s", df)
-    logging.info("Total detected points: %d", df.shape[0])
+    logger.info("\n%s", df)
+    logger.info("Total detected points: %d", df.shape[0])
     df.to_csv(output_csv, index=False)
 
     # cv2.imshow("Detected Points", image)

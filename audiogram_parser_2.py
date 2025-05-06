@@ -1,13 +1,10 @@
 import cv2
 import numpy as np
 import pandas as pd
-import logging
+from logger import setup_logger
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] %(message)s'
-)
+logger = setup_logger(__name__)
 
 FREQUENCIES = ['125', '250', '500', '1k', '2k', '4k', '8k']
 DB_MIN, DB_MAX = -10, 120
@@ -137,7 +134,7 @@ def run(image_path: str, output_csv: str) -> None:
     right_points = detect_red_circles(right_img)
     left_points = detect_blue_crosses(left_img)
 
-    logging.info("Left-click = add, Right-click = remove. ESC or close window to finish.")
+    logger.info("Left-click = add, Right-click = remove. ESC or close window to finish.")
 
     right_points = PointEditor("Right Ear – Red Circles", right_img, 'red', right_points).edit()
     left_points = PointEditor("Left Ear – Blue Crosses", left_img, 'blue', left_points).edit()
@@ -154,5 +151,5 @@ def run(image_path: str, output_csv: str) -> None:
     df.insert(0, "Frequency (Hz)", FREQUENCIES * 2 if len(df) > 7 else FREQUENCIES)
 
     df.to_csv(output_csv, index=False)
-    logging.info(f"[INFO] Saved results to: {output_csv}")
-    logging.info(df)
+    logger.info(f"[INFO] Saved results to: {output_csv}")
+    logger.info(df)
