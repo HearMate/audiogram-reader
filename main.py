@@ -3,6 +3,7 @@ from audiogram_classify import classify_audiogram_type
 import audiogram_parser_1
 import audiogram_parser_2
 
+
 def main(image_path: str, output_csv: str):
     """
     Main execution entry point. Classifies the audiogram type and dispatches
@@ -30,6 +31,7 @@ def main(image_path: str, output_csv: str):
 
     except Exception as e:
         print(f"[ERROR] Exception occurred: {e}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
