@@ -1,7 +1,7 @@
 import sys
 from audiogram_classify import classify_audiogram_type
-import  audiogram.audiogram_parser_1
-import  audiogram.audiogram_parser_2
+import  audiogram.audiogram_parser_1 as audiogram_parser_1
+import  audiogram.audiogram_parser_2 as audiogram_parser_2
 from logger import setup_logger
 
 logger = setup_logger(__name__)
