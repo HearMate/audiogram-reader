@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import pandas as pd
-from logger import setup_logger
+from ..logger import setup_logger
 
 
 logger = setup_logger(__name__)

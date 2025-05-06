@@ -2,7 +2,7 @@ import cv2
 import pandas as pd
 import numpy as np
 from data_normalization import *
-from logger import setup_logger
+from ..logger import setup_logger
 
 logger = setup_logger(__name__)
 
