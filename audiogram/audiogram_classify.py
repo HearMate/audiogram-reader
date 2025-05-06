@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 import os
+from ..logger import setup_logger
+
+logger = setup_logger(__name__)
 
 def classify_audiogram_type(image_path: str) -> str:
     """
@@ -16,7 +19,7 @@ def classify_audiogram_type(image_path: str) -> str:
     """
     filename = os.path.basename(image_path).lower()
     if any(keyword in filename for keyword in ["ucho", "prawe", "lewe"]):
-        print("[INFO] Polish keywords detected in filename → classified as type_1")
+        logger.info("Polish keywords detected in filename → classified as type_1")
         return "type_1"
 
     image = cv2.imread(image_path)
@@ -25,18 +28,18 @@ def classify_audiogram_type(image_path: str) -> str:
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     brightness = np.mean(gray)
-    print(f"[INFO] Mean brightness: {brightness:.2f}")
+    logger.info(f"Mean brightness: {brightness:.2f}")
 
     gray_pixels = np.logical_and(gray > 80, gray < 180)
     gray_ratio = np.sum(gray_pixels) / gray.size
-    print(f"[INFO] Gray pixel ratio: {gray_ratio:.2f}")
+    logger.info(f"Gray pixel ratio: {gray_ratio:.2f}")
 
     if gray_ratio > 0.3:
-        print("[INFO] High gray ratio detected → classified as type_2")
+        logger.info("High gray ratio detected → classified as type_2")
         return "type_2"
     elif brightness > 180 and gray_ratio < 0.2:
-        print("[INFO] Bright and clean image → classified as type_1")
+        logger.info("Bright and clean image → classified as type_1")
         return "type_1"
     else:
-        print("[INFO] Unclear structure → classified as unknown")
+        logger.info("Unclear structure → classified as unknown")
         return "unknown"
