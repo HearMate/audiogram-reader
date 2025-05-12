@@ -22,6 +22,7 @@ def upload_image():
     result = df.groupby('Ear').apply(
         lambda g: dict(zip(g['Frequency (Hz)'], g['Threshold (dB HL)']))
     ).to_dict()
+    result.update({'Version': '1'})
     json_str = json.dumps(result, indent=2)
     print(json_str)
     return json_str
