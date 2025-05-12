@@ -1,6 +1,8 @@
 import cv2
 import pandas as pd
 import numpy as np
+from werkzeug.datastructures import FileStorage
+
 from data_normalization import *
 
 
@@ -34,17 +36,18 @@ def find_points(mask: np.ndarray, image: np.ndarray, ear_label: str, color: tupl
     return points
 
 
-def run(image_path: str, output_csv: str) -> None:
+def process_audiogram_image(file: FileStorage):
     """
     Parses a 'type_1' audiogram image, detects threshold points, and saves to a combined CSV.
 
     Parameters:
         image_path (str): Path to input image.
-        output_csv (str): Path to save CSV file.
     """
-    image = cv2.imread(image_path)
-    if image is None:
-        raise FileNotFoundError(f"Image not found: {image_path}")
+    file_bytes = file.read()
+
+    # Convert to NumPy array and decode with OpenCV
+    npimg = np.frombuffer(file_bytes, np.uint8)
+    image = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
 
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -64,10 +67,4 @@ def run(image_path: str, output_csv: str) -> None:
     df = normalize(df, image)
     df = drop_bone_data(df)
 
-    print(df)
-    print(df.shape[0])
-    df.to_csv(output_csv, index=False)
-
-    # cv2.imshow("Detected Points", image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    return df

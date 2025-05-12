@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 
+
 def classify_audiogram_type(image_path: str) -> str:
     """
     Classifies the audiogram image into one of two types:

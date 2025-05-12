@@ -1,40 +1,34 @@
-import sys
-from audiogram_classify import classify_audiogram_type
-import audiogram_parser_1
-import audiogram_parser_2
+import json
+from flask import Flask, request
+from flask_cors import CORS
+
+from audiogram_parser_1 import *
+from anomaly_detection import *
+
+app = Flask(__name__)
+CORS(app)
 
 
-def main(image_path: str, output_csv: str):
-    """
-    Main execution entry point. Classifies the audiogram type and dispatches
-    to the appropriate parser depending on the result.
+@app.route('/', methods=['GET'])
+def home():
+    return "Flask server is running!"
 
-    Parameters:
-        image_path (str): Path to the audiogram image.
-        output_csv (str): Path to the output CSV file.
-    """
-    try:
-        print(f"[INFO] Processing file: {image_path}")
-        audiogram_type = classify_audiogram_type(image_path)
-        print(f"[INFO] Detected audiogram type: {audiogram_type}")
 
-        if audiogram_type == "type_1":
-            print("[INFO] Executing parser for type_1 audiogram")
-            audiogram_parser_1.run(image_path, output_csv)
+@app.route('/upload-image', methods=['POST'])
+def upload_image():
+    if 'image' not in request.files:
+        return 'no image', 400
 
-        elif audiogram_type == "type_2":
-            print("[INFO] Executing parser for type_2 audiogram")
-            audiogram_parser_2.run(image_path, output_csv)
-
-        else:
-            print("[ERROR] Unable to classify audiogram. No parser executed.")
-
-    except Exception as e:
-        print(f"[ERROR] Exception occurred: {e}")
+    file = request.files['image']
+    df = process_audiogram_image(file)
+    anomaly_status = detect_anomaly(df)
+    result = df.groupby('Ear').apply(
+        lambda g: dict(zip(g['Frequency (Hz)'], g['Threshold (dB HL)']))
+    ).to_dict()
+    result.update({'Status': anomaly_status, 'Version': '2'})
+    json_str = json.dumps(result, indent=2)
+    return json_str
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python main.py <audiogram_image_path> <output_csv_path>")
-    else:
-        main(sys.argv[1], sys.argv[2])
+    app.run(debug=True, host='0.0.0.0', port=5000)
